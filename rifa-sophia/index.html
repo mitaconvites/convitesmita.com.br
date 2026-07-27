@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chá Rifa Digital </title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100dvh; margin: 0; color: #f8fafc; }
+        #app-frame {
+    width:100%;
+    height:100dvh;
+
+    position:relative;
+
+    overflow:hidden;
+
+    background:#efefef;
+}
+        
+        .page { width: 100%; height: 100%; display: none; overflow-y: auto; overflow-x: hidden; position: absolute; top: 0; left: 0; }
+        .page.active { display: block; }
+        .page:not(#p1) { background-color: #0f172a; }
+        
+        /* Box P1 - Impede vazamentos (overflow hidden) e centraliza a arte */
+       #p1{
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    width:100%;
+
+    height:100dvh;
+
+    background:#efefef;
+
+    overflow:hidden;
+}
+        
+        /* A Caixa que prende a arte e os botões juntos na exata proporção 9:16 */
+      .capa-aspect-box{
+
+    position:relative;
+
+    aspect-ratio:9/16;
+
+    width:min(100vw,56.25vh);
+
+    height:auto;
+
+    max-height:100dvh;
+
+    background-size:contain;
+
+    background-repeat:no-repeat;
+
+    background-position:center;
+
+    background-color:white;
+
+}
+        
+        /* Botões posicionados absolutamente DENTRO da arte, nunca vazam */
+        .btn-audio{
+
+    position:absolute;
+
+    left:5%;
+
+    bottom:5%;
+
+    width:52px;
+
+    height:52px;
+
+    border-radius:50%;
+
+    border:none;
+
+    background:rgba(0,0,0,.28);
+
+    color:white;
+
+    font-size:22px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    backdrop-filter:blur(6px);
+
+}
+        .btn-proximo{
+
+    position:absolute;
+
+    right:5%;
+
+    bottom:5%;
+
+    padding:15px 32px;
+
+    border-radius:40px;
+
+    border:none;
+
+    background:#2f80ed;
+
+    color:white;
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.18);
+
+}
+        
+        #p2 { padding: 20px; }
+        .grid-header { margin-bottom: 20px; text-align: center; }
+        .grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 500px; margin: 0 auto; padding-bottom: 40px; }
+        .num-box { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; cursor: pointer; font-size: 14px; transition: transform 0.1s; }
+        .num-box:active { transform: scale(0.9); }
+        
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100dvh; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: #1e293b; padding: 25px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #475569; background: #0f172a; color: white; border-radius: 6px; }
+        .modal-btn { background: #10b981; color: white; border: none; padding: 12px; width:100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
+        .admin-auth { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .admin-dashboard { max-width: 600px; margin: 0 auto; display: none; padding: 20px; }
+        .lista-pedidos { background: #1e293b; border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .pedido-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #334155; font-size: 14px; }
+        .btn-adm-status { padding: 6px 12px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .btn-sortear { background: #6366f1; color: white; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; font-size: 18px; margin-top: 30px; }
+        .sorteio-roleta { font-size: 48px; font-weight: 900; color: #ff4757; text-align: center; margin: 20px 0; min-height: 60px; }
+        
+        .sucesso-box { padding: 20px; text-align: center; padding-top: 50px; }
+        .btn-whatsapp { display:inline-block; background:#25D366; color:white; padding:15px 25px; border-radius:8px; text-decoration:none; font-weight:bold; }
+        
+        .legendas{
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap:18px;
+            flex-wrap:wrap;
+            margin:0 0 20px;
+        }
+
+        .leg-item{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            color:#cbd5e1;
+            font-size:13px;
+            font-weight:500;
+        }
+
+        .leg-cor{
+            width:14px;
+            height:14px;
+            border-radius:4px;
+            border:1px solid rgba(255,255,255,.25);
+            flex-shrink:0;
+        }
+    </style>
+</head>
+<body>
+    <audio id="bg-audio" loop src="audio.mp3" playsinline></audio>
+    <div id="app-frame">
+        <div class="page active" id="p1">
+            <div class="capa-aspect-box" style="background-image: url('https://res.cloudinary.com/dtshawz5x/image/upload/v1782567689/capa_xjg87w.gif');">
+                <button class="btn-audio" onclick="toggleAudio()">🔊</button>
+                <button class="btn-proximo" onclick="irPara(2)">Participar ➔</button>
+            </div>
+        </div>
+        <div class="page" id="p2">
+            <div class="grid-header">
+                <h1 style="color: #fff; font-size: 24px; margin-bottom: 5px;">Chá Rifa Digital </h1>
+                <p style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">Participe e concorra ao prémio de R$ 200,00</p>
+                
+                <div class="legendas">
+                    <div class="leg-item">
+                        <span class="leg-cor" style="background:#cbd5e1"></span>
+                        <span>Livre</span>
+                    </div>
+                    <div class="leg-item">
+                        <span class="leg-cor" style="background:#f59e0b"></span>
+                        <span>Reservado</span>
+                    </div>
+                    <div class="leg-item">
+                        <span class="leg-cor" style="background:#10b981"></span>
+                        <span>Pago</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container" id="container-numbers"></div>
+        </div>
+
+        <div class="page" id="p3">
+            <div class="sucesso-box">
+                <h1 style="color:#10b981;">Reserva Confirmada!</h1>
+                <div id="sucesso-detalhes" style="font-weight:bold; font-size:18px; margin:20px 0; color:#f59e0b;"></div>
+                <a href="#" id="lnk-whatsapp" target="_blank" class="btn-whatsapp">Enviar Comprovante via WhatsApp</a>
+            </div>
+        </div>
+        <div class="page" id="p4">
+            <div class="admin-auth" id="adm-login-box">
+                <h2>Acesso Restrito - Admin</h2>
+                <input type="password" id="adm-pass" placeholder="Introduza a Senha" style="width:100%; padding:12px; margin:15px 0; background:#1e293b; color:white; border:1px solid #475569; border-radius:6px;">
+                <button class="modal-btn" onclick="autenticarAdmin()">Entrar no Painel</button>
+            </div>
+            <div class="admin-dashboard" id="adm-dash-box">
+                <h2>Painel de Gestão da Rifa</h2>
+                <button class="btn-sortear" onclick="realizarSorteio()">🎲 REALIZAR SORTEIO ALEATÓRIO</button>
+                <div class="sorteio-roleta" id="roleta-num">...</div>
+                <div class="lista-pedidos" id="adm-pedidos-lista"></div>
+            </div>
+        </div>
+        <div class="modal" id="modal-cadastro">
+            <div class="modal-content">
+                <h3>Reservar Número <span id="modal-num-display">0</span></h3>
+                <input type="text" id="user-nome" placeholder="Nome Completo">
+                <input type="text" id="user-tel" placeholder="Telefone">
+                <button class="modal-btn" onclick="confirmarReserva()">Confirmar Escolha</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        eval(decodeURIComponent(escape(atob("CiAgICAgICAgY29uc3QgaWRDbGllbnRlID0gInNvcGhpYSI7CiAgICAgICAgY29uc3QgcmVmUGF0aCA9ICdyaWZhX251bWVyb3MvJyArIGlkQ2xpZW50ZSArICcvJzsKICAgICAgICBjb25zdCBmYkNvbmZpZyA9IHsgYXBpS2V5OiAiQUl6YVN5QmlXQ1gtbmdKYVJ3R0ZHaV9fQUFaWGdaN0cwcTEyTFA4IiIsIGRhdGFiYXNlVVJMOiAiaHR0cHM6Ly9jb25zb2xlLmZpcmViYXNlLmdvb2dsZS5jb20vcHJvamVjdC9nZXJhZG9yLXJpZmEtZGlnaXRhbC1taXRhL2RhdGFiYXNlL2dlcmFkb3ItcmlmYS1kaWdpdGFsLW1pdGEtZGVmYXVsdC1ydGRiL2RhdGEvfjJGIiwgcHJvamVjdElkOiAiZ2VyYWRvci1yaWZhLWRpZ2l0YWwtbWl0YSIgfTsKICAgICAgICBjb25zdCBxdGRUb3RhbCA9IHBhcnNlSW50KCI1MCIpOwogICAgICAgIGNvbnN0IHdoYXRzYXBwQWRtaW4gPSAiNTUxNDk5MTU0MTU0OSI7CiAgICAgICAgY29uc3QgaGFzaE1hc3RlciA9ICJlMWYzOTI1MTYyMmQ4IjsKICAgICAgICBsZXQgbnVtZXJvU2VsZWNpb25hZG9BdHVhbCA9IG51bGw7CiAgICAgICAgbGV0IGxvY2FsREIgPSB7fTsKCiAgICAgICAgZnVuY3Rpb24gaGFzaFNlbmhhKHN0cikgewogICAgICAgICAgICBsZXQgaDEgPSAweGRlYWRiZWVmLCBoMiA9IDB4NDFjNmNlNTc7CiAgICAgICAgICAgIGZvciAobGV0IGkgPSAwLCBjaDsgaSA8IHN0ci5sZW5ndGg7IGkrKykgewogICAgICAgICAgICAgICAgY2ggPSBzdHIuY2hhckNvZGVBdChpKTsKICAgICAgICAgICAgICAgIGgxID0gTWF0aC5pbXVsKGgxIF4gY2gsIDI2NTQ0MzU3NjEpOwogICAgICAgICAgICAgICAgaDIgPSBNYXRoLmltdWwoaDIgXiBjaCwgMTU5NzMzNDY3Nyk7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgaDEgPSBNYXRoLmltdWwoaDEgXiAoaDE+Pj4xNiksIDIyNDY4MjI1MDcpIF4gTWF0aC5pbXVsKGgyIF4gKGgyPj4+MTMpLCAzMjY2NDg5OTA5KTsKICAgICAgICAgICAgaDIgPSBNYXRoLmltdWwoaDIgXiAoaDI+Pj4xNiksIDIyNDY4MjI1MDcpIF4gTWF0aC5pbXVsKGgxIF4gKGgxPj4+MTMpLCAzMjY2NDg5OTA5KTsKICAgICAgICAgICAgcmV0dXJuICg0Mjk0OTY3Mjk2ICogKDIwOTcxNTEgJiBoMikgKyAoaDE+Pj4wKSkudG9TdHJpbmcoMTYpOwogICAgICAgIH0KCiAgICAgICAgaWYoZmJDb25maWcuYXBpS2V5ICYmIGZiQ29uZmlnLmRhdGFiYXNlVVJMKSB7IGZpcmViYXNlLmluaXRpYWxpemVBcHAoZmJDb25maWcpOyB2YXIgZGF0YWJhc2UgPSBmaXJlYmFzZS5kYXRhYmFzZSgpOyB9CiAgICAgICAgZnVuY3Rpb24gaXJQYXJhKGlkUGFnaW5hKSB7IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJy5wYWdlJykuZm9yRWFjaChwID0+IHAuY2xhc3NMaXN0LnJlbW92ZSgnYWN0aXZlJykpOyBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncCcgKyBpZFBhZ2luYSkuY2xhc3NMaXN0LmFkZCgnYWN0aXZlJyk7IGlmKGlkUGFnaW5hID09PSAyKSByZW5kZXJpemFyR3JpZCgpOyB9CiAgICAgICAgZnVuY3Rpb24gdG9nZ2xlQXVkaW8oKSB7IGNvbnN0IGF1ZGlvID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2JnLWF1ZGlvJyk7IGlmIChhdWRpby5wYXVzZWQpIHsgYXVkaW8ucGxheSgpOyBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcuYnRuLWF1ZGlvJykuaW5uZXJUZXh0ID0gIvCflIoiOyB9IGVsc2UgeyBhdWRpby5wYXVzZSgpOyBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcuYnRuLWF1ZGlvJykuaW5uZXJUZXh0ID0gIvCflIciOyB9IH0KICAgICAgICBpZihkYXRhYmFzZSkgeyBkYXRhYmFzZS5yZWYocmVmUGF0aCkub24oJ3ZhbHVlJywgKHNuYXBzaG90KSA9PiB7IGxvY2FsREIgPSBzbmFwc2hvdC52YWwoKSB8fCB7fTsgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3AyJykuY2xhc3NMaXN0LmNvbnRhaW5zKCdhY3RpdmUnKSkgcmVuZGVyaXphckdyaWQoKTsgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FkbS1kYXNoLWJveCcpLnN0eWxlLmRpc3BsYXkgPT09ICdibG9jaycpIGF0dWFsaXphckRhc2hib2FyZEFkbWluKCk7IH0pOyB9CiAgICAgICAgZnVuY3Rpb24gcmVuZGVyaXphckdyaWQoKSB7IGNvbnN0IGNvbnRhaW5lciA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdjb250YWluZXItbnVtYmVycycpOyBjb250YWluZXIuaW5uZXJIVE1MID0gJyc7IGZvcihsZXQgaSA9IDE7IGkgPD0gcXRkVG90YWw7IGkrKykgeyBjb25zdCBib3ggPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTsgYm94LmNsYXNzTmFtZSA9ICdudW0tYm94JzsgYm94LmlubmVyVGV4dCA9IGk7IGNvbnN0IGRhZG9zTnVtID0gbG9jYWxEQltpXSB8fCB7IHN0YXR1czogJ2Rpc3Bvbml2ZWwnIH07IGlmKGRhZG9zTnVtLnN0YXR1cyA9PT0gJ3BhZ28nKSB7IGJveC5zdHlsZS5iYWNrZ3JvdW5kID0gJyMxMGI5ODEnOyBib3guc3R5bGUuY29sb3IgPSAnI2ZmZic7IH0gZWxzZSBpZihkYWRvc051bS5zdGF0dXMgPT09ICdyZXNlcnZhZG8nKSB7IGJveC5zdHlsZS5iYWNrZ3JvdW5kID0gJyNmNTllMGInOyBib3guc3R5bGUuY29sb3IgPSAnI2ZmZic7IH0gZWxzZSB7IGJveC5zdHlsZS5iYWNrZ3JvdW5kID0gJyNjYmQ1ZTEnOyB9IGJveC5vbmNsaWNrID0gKCkgPT4gY2xpY2FyTnVtZXJvKGksIGRhZG9zTnVtLnN0YXR1cyk7IGNvbnRhaW5lci5hcHBlbmRDaGlsZChib3gpOyB9IH0KICAgICAgICBmdW5jdGlvbiBjbGljYXJOdW1lcm8obnVtLCBzdGF0dXMpIHsgaWYoc3RhdHVzICE9PSAnZGlzcG9uaXZlbCcpIHsgYWxlcnQoJ0VzdGUgbsO6bWVybyBqw6Egc2UgZW5jb250cmEgb2N1cGFkbyEnKTsgcmV0dXJuOyB9IG51bWVyb1NlbGVjaW9uYWRvQXR1YWwgPSBudW07IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtb2RhbC1udW0tZGlzcGxheScpLmlubmVyVGV4dCA9IG51bTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21vZGFsLWNhZGFzdHJvJykuc3R5bGUuZGlzcGxheSA9ICdmbGV4JzsgfQogICAgICAgIGZ1bmN0aW9uIGNvbmZpcm1hclJlc2VydmEoKSB7IGNvbnN0IG5vbWUgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndXNlci1ub21lJykudmFsdWUudHJpbSgpOyBjb25zdCB0ZWwgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndXNlci10ZWwnKS52YWx1ZS50cmltKCk7IGlmKCFub21lIHx8ICF0ZWwpIHsgYWxlcnQoJ1ByZWVuY2hhIHRvZG9zIG9zIGNhbXBvcyEnKTsgcmV0dXJuOyB9IGlmKGRhdGFiYXNlKSB7IGRhdGFiYXNlLnJlZihyZWZQYXRoICsgbnVtZXJvU2VsZWNpb25hZG9BdHVhbCkuc2V0KHsgc3RhdHVzOiAncmVzZXJ2YWRvJywgbm9tZTogbm9tZSwgdGVsZWZvbmU6IHRlbCB9KS50aGVuKCgpID0+IHsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21vZGFsLWNhZGFzdHJvJykuc3R5bGUuZGlzcGxheSA9ICdub25lJzsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3N1Y2Vzc28tZGV0YWxoZXMnKS5pbm5lclRleHQgPSAiTsO6bWVybzogIiArIG51bWVyb1NlbGVjaW9uYWRvQXR1YWwgKyAiIHwgTm9tZTogIiArIG5vbWU7IGNvbnN0IHR4dFphcCA9ICJPbMOhIEFkbWluaXN0cmFkb3IsIGVzY29saGkgbyBuw7ptZXJvICIgKyBudW1lcm9TZWxlY2lvbmFkb0F0dWFsICsgIiAoIiArIG5vbWUgKyAiKS4gU2VndWUgbyBjb21wcm92YW50ZSBkZSBwYWdhbWVudG8gZW0gYW5leG8uIjsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2xuay13aGF0c2FwcCcpLmhyZWYgPSAiaHR0cHM6Ly9hcGkud2hhdHNhcHAuY29tL3NlbmQ/cGhvbmU9IiArIHdoYXRzYXBwQWRtaW4gKyAiJnRleHQ9IiArIGVuY29kZVVSSUNvbXBvbmVudCh0eHRaYXApOyBpclBhcmEoMyk7IH0pOyB9IH0KICAgICAgICBmdW5jdGlvbiBhdXRlbnRpY2FyQWRtaW4oKSB7IGNvbnN0IHBhc3MgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYWRtLXBhc3MnKS52YWx1ZTsgaWYoaGFzaFNlbmhhKHBhc3MpID09PSBoYXNoTWFzdGVyKSB7IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdhZG0tbG9naW4tYm94Jykuc3R5bGUuZGlzcGxheSA9ICdub25lJzsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FkbS1kYXNoLWJveCcpLnN0eWxlLmRpc3BsYXkgPSAnYmxvY2snOyBhdHVhbGl6YXJEYXNoYm9hcmRBZG1pbigpOyB9IGVsc2UgeyBhbGVydCgnU2VuaGEgSW5jb3JyZXRhIScpOyB9IH0KICAgICAgICBmdW5jdGlvbiBhdHVhbGl6YXJEYXNoYm9hcmRBZG1pbigpIHsgY29uc3QgY29udGFpbmVyID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FkbS1wZWRpZG9zLWxpc3RhJyk7IGNvbnRhaW5lci5pbm5lckhUTUwgPSAnJzsgbGV0IHRlbVBlZGlkb3MgPSBmYWxzZTsgZm9yKGxldCBpID0gMTsgaSA8PSBxdGRUb3RhbDsgaSsrKSB7IGlmKGxvY2FsREJbaV0gJiYgbG9jYWxEQltpXS5zdGF0dXMgIT09ICdkaXNwb25pdmVsJykgeyB0ZW1QZWRpZG9zID0gdHJ1ZTsgY29uc3QgaXRlbSA9IGxvY2FsREJbaV07IGNvbnN0IHJvdyA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpOyByb3cuY2xhc3NOYW1lID0gJ3BlZGlkby1yb3cnOyByb3cuaW5uZXJIVE1MID0gIjxkaXY+PHN0cm9uZz4jIiArIGkgKyAiPC9zdHJvbmc+IC0gIiArIGl0ZW0ubm9tZSArICIgKCIgKyBpdGVtLnRlbGVmb25lICsgIikgWyIgKyBpdGVtLnN0YXR1cy50b1VwcGVyQ2FzZSgpICsgIl08L2Rpdj4iOyBjb25zdCBidG5TdGF0dXMgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdidXR0b24nKTsgYnRuU3RhdHVzLmNsYXNzTmFtZSA9ICdidG4tYWRtLXN0YXR1cyc7IGlmKGl0ZW0uc3RhdHVzID09PSAncmVzZXJ2YWRvJykgeyBidG5TdGF0dXMuaW5uZXJUZXh0ID0gIkNvbmZpcm1hciBQYWdvIjsgYnRuU3RhdHVzLnN0eWxlLmJhY2tncm91bmQgPSAnIzEwYjk4MSc7IGJ0blN0YXR1cy5zdHlsZS5jb2xvciA9ICcjZmZmJzsgYnRuU3RhdHVzLm9uY2xpY2sgPSAoKSA9PiBhbHRlcmFyU3RhdHVzTnVtZXJvKGksICdwYWdvJyk7IH0gZWxzZSB7IGJ0blN0YXR1cy5pbm5lclRleHQgPSAiTGliZXJhciBOw7ptZXJvIjsgYnRuU3RhdHVzLnN0eWxlLmJhY2tncm91bmQgPSAnI2VmNDQ0NCc7IGJ0blN0YXR1cy5zdHlsZS5jb2xvciA9ICcjZmZmJzsgYnRuU3RhdHVzLm9uY2xpY2sgPSAoKSA9PiBhbHRlcmFyU3RhdHVzTnVtZXJvKGksICdkaXNwb25pdmVsJyk7IH0gcm93LmFwcGVuZENoaWxkKGJ0blN0YXR1cyk7IGNvbnRhaW5lci5hcHBlbmRDaGlsZChyb3cpOyB9IH0gaWYoIXRlbVBlZGlkb3MpIGNvbnRhaW5lci5pbm5lckhUTUwgPSAnPHAgc3R5bGU9ImNvbG9yOiM5NGEzYjg7IGZvbnQtc2l6ZToxNHB4OyI+TmVuaHVtYSByZXNlcnZhIGVmZXR1YWRhIGF0w6kgYW8gbW9tZW50by48L3A+JzsgfQogICAgICAgIGZ1bmN0aW9uIGFsdGVyYXJTdGF0dXNOdW1lcm8obnVtLCBub3ZvU3RhdHVzKSB7IGlmKGRhdGFiYXNlKSB7IGlmKG5vdm9TdGF0dXMgPT09ICdkaXNwb25pdmVsJykgeyBkYXRhYmFzZS5yZWYocmVmUGF0aCArIG51bSkucmVtb3ZlKCk7IH0gZWxzZSB7IGRhdGFiYXNlLnJlZihyZWZQYXRoICsgbnVtICsgJy9zdGF0dXMnKS5zZXQobm92b1N0YXR1cyk7IH0gfSB9CiAgICAgICAgZnVuY3Rpb24gcmVhbGl6YXJTb3J0ZWlvKCkgeyBsZXQgcGFnb3MgPSBbXTsgZm9yKGxldCBpID0gMTsgaSA8PSBxdGRUb3RhbDsgaSsrKSB7IGlmKGxvY2FsREJbaV0gJiYgbG9jYWxEQltpXS5zdGF0dXMgPT09ICdwYWdvJykgeyBwYWdvcy5wdXNoKHsgbnVtZXJvOiBpLCBub21lOiBsb2NhbERCW2ldLm5vbWUgfSk7IH0gfSBpZihwYWdvcy5sZW5ndGggPT09IDApIHsgYWxlcnQoJ07Do28gZXhpc3RlbSBuw7ptZXJvcyBjb20gc3RhdHVzIFBBR08gcGFyYSByZWFsaXphciBvIHNvcnRlaW8hJyk7IHJldHVybjsgfSBsZXQgZHVyYWNhb0FuaW1hY2FvID0gMzAwMDsgbGV0IGludGVydmFsb1JvbGV0YSA9IHNldEludGVydmFsKCgpID0+IHsgbGV0IG51bWVyb0FsZWF0b3Jpb1NpbXVsYWRvID0gTWF0aC5mbG9vcihNYXRoLnJhbmRvbSgpICogcXRkVG90YWwpICsgMTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JvbGV0YS1udW0nKS5pbm5lclRleHQgPSAiIyIgKyBudW1lcm9BbGVhdG9yaW9TaW11bGFkbzsgfSwgNzApOyBzZXRUaW1lb3V0KCgpID0+IHsgY2xlYXJJbnRlcnZhbChpbnRlcnZhbG9Sb2xldGEpOyBsZXQgc29ydGVhZG8gPSBwYWdvc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwYWdvcy5sZW5ndGgpXTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JvbGV0YS1udW0nKS5pbm5lckhUTUwgPSAiPHNwYW4gc3R5bGU9J2NvbG9yOiMxMGI5ODE7Jz5WZW5jZWRvcjogIyIgKyBzb3J0ZWFkby5udW1lcm8gKyAiPC9zcGFuPjxicj48c3BhbiBzdHlsZT0nZm9udC1zaXplOjIwcHg7IGNvbG9yOndoaXRlOyc+IiArIHNvcnRlYWRvLm5vbWUgKyAiPC9zcGFuPiI7IH0sIGR1cmFjYW9BbmltYWNhbyk7IH0KICAgICAgICBpZih3aW5kb3cubG9jYXRpb24uaGFzaCA9PT0gJyNhZG1pbicpIGlyUGFyYSg0KTsKICAgICAgICA="))));
+    </script>
+</body>
+</html>

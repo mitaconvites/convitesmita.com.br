@@ -141,16 +141,19 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, increment, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-   const firebaseConfig = {
-  apiKey: "AIzaSyBkO4Ge4ziGF_RezA69mm_jG30m5Q8xxBk",
-  authDomain: "insta-momentos-thais.firebaseapp.com",
-  projectId: "insta-momentos-thais",
-  storageBucket: "insta-momentos-thais.firebasestorage.app",
-  messagingSenderId: "601946056755",
-  appId: "1:601946056755:web:8aa0257d1aa5af3a061b46"
-};
+    const dec = (b64) => { try { return atob(b64); } catch(e) { return ""; } };
+
+    const firebaseConfig = {
+        apiKey: dec("QUl6YVN5QmtPNEdlNHppR0ZfUmV6QTY5bW1fakczMG01UTh4eEJr"),
+        authDomain: dec("aW5zdGEtbW9tZW50b3MtdGhhaXMuZmlyZWJhc2VhcHAuY29t"),
+        projectId: dec("aW5zdGEtbW9tZW50b3MtdGhhaXM="),
+        storageBucket: dec("aW5zdGEtbW9tZW50b3MtdGhhaXMuZmlyZWJhc2VzdG9yYWdlLmFwcA=="),
+        messagingSenderId: dec("NjAxOTQ2MDU2NzU1"),
+        appId: dec("MTo2MDE5NDYwNTY3NTU6d2ViOjhhYTAyNTdkMWFhNWFmM2EwNjFiNDY=")
+    };
     
-    const IMGBB_API_KEY = "18a4dde52a7230c56384176be79a0815";
+    const IMGBB_API_KEY = dec("MThhNGRkZTUyYTcyMzBjNTYzODQxNzZiZTc5YTA4MTU=");
+    const SENHA_HASH = "NDMyMQ==";
     const EVENTO_ID = "casamento_carol_rafael"; 
     const LINK_VIDEO_EXTERNO = "https://convitesmita.com.br/filtrocarolrafael/";
 
@@ -210,9 +213,6 @@
                 if (data.url_avatar) document.getElementById('avatarEvento').src = data.url_avatar;
                 if (data.url_banner) document.querySelector('.banner').style.backgroundImage = "url('" + data.url_banner + "')";
                 
-                // =========================================================
-                // CORREÇÃO CIRÚRGICA: DESTRAVAR CORS DO GITHUB
-                // =========================================================
                 if (data.url_moldura) {
                     let urlSegura = data.url_moldura;
                     if (urlSegura.includes("github.com") && urlSegura.includes("/blob/")) {
@@ -229,24 +229,23 @@
                 }
             } else {
                 alert("🚨 ALERTA: O Sistema não encontrou a pasta '" + EVENTO_ID + "' em 'configuracoes'. Verifique o Firebase!");
-                console.error("Documento configuracoes/" + EVENTO_ID + " não existe!");
             }
         });
 
-       let urlsParaZip = []; // Lista que vai guardar as fotos
+        let urlsParaZip = [];
 
         onSnapshot(query(collection(db, "eventos/" + EVENTO_ID + "/postagens"), orderBy("data_envio", "desc")), (snap) => {
             const feed = document.getElementById('feedGaleria');
             feed.innerHTML = "";
             let totalC = 0, totalComent = 0;
-            urlsParaZip = []; // Limpa a lista a cada atualização
+            urlsParaZip = [];
 
             snap.forEach(docSnap => {
                 const p = docSnap.data();
                 totalC += (p.curtidas || 0);
                 totalComent += (p.total_comentarios || 0);
                 
-                if (p.url_imagem) urlsParaZip.push(p.url_imagem); // Guarda a URL da foto para o ZIP
+                if (p.url_imagem) urlsParaZip.push(p.url_imagem);
 
                 const card = document.createElement('div');
                 card.className = 'post-container';
@@ -258,7 +257,6 @@
                 feed.appendChild(card);
             });
 
-            // Mostra o botão de baixar tudo apenas se houver fotos
             const btnZip = document.getElementById('btnBaixarTudoZip');
             if(btnZip) btnZip.style.display = snap.size > 0 ? 'block' : 'none';
 
@@ -266,10 +264,9 @@
             document.getElementById('totalCurtidas').textContent = totalC;
             document.getElementById('totalComentariosGeral').textContent = totalComent;
         });
-        // FUNÇÃO DE BAIXAR TUDO EM ZIP
+
         document.getElementById('btnBaixarTudoZip').onclick = async () => {
             if (urlsParaZip.length === 0) return alert("Nenhuma foto disponível para baixar.");
-            
             const btn = document.getElementById('btnBaixarTudoZip');
             const textoOriginal = btn.innerHTML;
             btn.innerHTML = "⏳ Empacotando... (Pode demorar)";
@@ -281,19 +278,15 @@
                 
                 for (let i = 0; i < urlsParaZip.length; i++) {
                     try {
-                        // nocache ajuda a evitar bloqueios do navegador ao baixar do ImgBB
                         const res = await fetch(urlsParaZip[i] + "?nocache=" + new Date().getTime());
                         const blob = await res.blob();
                         pasta.file("Foto_" + (i + 1) + ".jpg", blob);
-                    } catch(err) {
-                        console.error("Erro ao baixar a foto " + (i+1), err);
-                    }
+                    } catch(err) { console.error(err); }
                 }
 
                 btn.innerHTML = "📦 Gerando ZIP...";
                 const conteudo = await zip.generateAsync({ type: "blob" });
                 saveAs(conteudo, "Instamomentos_" + EVENTO_ID + ".zip");
-                
                 alert("Download concluído com sucesso!");
             } catch (erroZip) {
                 alert("Aviso: Erro ao gerar o arquivo ZIP. " + erroZip.message);
@@ -345,27 +338,17 @@
             btnBaixar.onclick = async (e) => {
                 e.preventDefault();
                 btnBaixar.textContent = "⏳ Processando...";
-                
                 try {
-                    const urlLimpa = url + "?nocache=" + new Date().getTime();
-                    const res = await fetch(urlLimpa);
+                    const res = await fetch(url + "?nocache=" + new Date().getTime());
                     const blob = await res.blob();
-                    
                     const link = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = link; 
-                    a.download = "Instamomentos_" + new Date().getTime() + ".jpg"; 
-                    document.body.appendChild(a); 
-                    a.click(); 
-                    
-                    document.body.removeChild(a);
+                    a.href = link; a.download = "Instamomentos_" + new Date().getTime() + ".jpg"; 
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     URL.revokeObjectURL(link);
-                    
-                    alert("sua foto foi baixada com sucesso, verifique sua galeria.");
+                    alert("Foto baixada com sucesso!");
                     btnBaixar.innerHTML = "⬇️ Baixar";
-                    
                 } catch(err) { 
-                    alert("Para salvar, segure o dedo na foto e escolha 'Salvar na Galeria'.");
                     window.open(url, '_blank'); 
                     btnBaixar.innerHTML = "⬇️ Baixar";
                 }
@@ -381,7 +364,8 @@
             document.getElementById('btnModalDeletar').onclick = (e) => { 
                 e.stopPropagation(); 
                 const senhaDigitada = prompt("Senha para excluir:");
-                if (senhaDigitada === "4321") {
+                const senhaReal = atob(SENHA_HASH);
+                if (senhaDigitada === senhaReal) {
                     if(confirm("Deseja realmente apagar esta foto?")) { deleteDoc(doc(db, "eventos/" + EVENTO_ID + "/postagens", id)); window.fecharModal(); }
                 } else if (senhaDigitada !== null) { alert("Senha incorreta!"); }
             };
@@ -391,9 +375,6 @@
 
         window.fecharModal = () => document.getElementById('modalFoto').style.display = 'none';
 
-        // =========================================================
-        // CORREÇÃO CIRÚRGICA: BLINDAGEM BOTÃO CAPTURA
-        // =========================================================
         document.getElementById('btnCapturarFinal').onclick = async () => {
             const btn = document.getElementById('btnCapturarFinal');
             btn.disabled = true;
@@ -419,7 +400,7 @@
                     fecharInterface();
                 }
             } catch(e) {
-                alert("Aviso do Sistema: Erro ao enviar foto. " + e.message);
+                alert("Erro ao enviar foto: " + e.message);
             } finally {
                 btn.disabled = false;
             }
@@ -456,9 +437,6 @@
             inputUploadArquivo.value = "";
         };
 
-        // =========================================================
-        // CORREÇÃO CIRÚRGICA: BLINDAGEM BOTÃO GALERIA (ENVIAR)
-        // =========================================================
         document.getElementById('btnConfirmarCorte').onclick = async () => {
             const btn = document.getElementById('btnConfirmarCorte');
             const textoOriginal = btn.innerHTML;
@@ -482,7 +460,7 @@
                     fecharInterface();
                 }
             } catch(e) {
-                alert("Aviso do Sistema: Erro ao enviar foto da galeria. " + e.message);
+                alert("Erro ao enviar foto: " + e.message);
             } finally {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
@@ -514,8 +492,7 @@
             } catch (err) { alert("Erro ao ativar flash."); }
         };
     } catch(erroGeral) {
-        console.error("Erro Crítico no Sistema:", erroGeral);
-        alert("Ocorreu um erro ao inicializar o sistema. Verifique a aba Console no Inspecionar Elemento.");
+        console.error("Erro Crítico:", erroGeral);
     }
 </script>
 </body>

@@ -152,7 +152,7 @@
     
     const IMGBB_API_KEY = "18a4dde52a7230c56384176be79a0815";
     const EVENTO_ID = "casamento_carol_rafael"; 
-    const LINK_VIDEO_EXTERNO = "https://convitesmita.com.br/filtrocarolrafael";
+    const LINK_VIDEO_EXTERNO = "https://convitesmita.com.br/filtrocarolrafael/";
 
     try {
         const app = initializeApp(firebaseConfig);
@@ -201,7 +201,7 @@
             document.getElementById('btnFiltroNormal').classList.remove('ativo');
         };
 
-        onSnapshot(doc(db, "configurações", EVENTO_ID), (d) => {
+        onSnapshot(doc(db, "configuracoes", EVENTO_ID), (d) => {
             if (d.exists()) {
                 const data = d.data();
                 document.getElementById('nomeEvento').textContent = data.nome || "";
